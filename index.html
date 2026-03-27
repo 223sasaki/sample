@@ -2,25 +2,30 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Snake Game</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
-    body {
+    html, body {
       background: #0f0f1a;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       min-height: 100vh;
+      min-height: 100dvh;
       font-family: 'Segoe UI', sans-serif;
       color: #fff;
+      overflow: hidden;
+      touch-action: none;
     }
 
     h1 {
-      font-size: 2rem;
-      margin-bottom: 10px;
+      font-size: clamp(1.2rem, 5vw, 2rem);
+      margin-bottom: 8px;
       color: #4ecca3;
       letter-spacing: 4px;
       text-transform: uppercase;
@@ -28,85 +33,135 @@
 
     #scoreboard {
       display: flex;
-      gap: 40px;
-      margin-bottom: 16px;
-      font-size: 1rem;
+      gap: clamp(16px, 6vw, 40px);
+      margin-bottom: 12px;
+      font-size: clamp(0.75rem, 3vw, 1rem);
     }
 
     .score-label { color: #888; }
-    .score-value { color: #4ecca3; font-weight: bold; font-size: 1.2rem; }
+    .score-value { color: #4ecca3; font-weight: bold; font-size: clamp(0.9rem, 3.5vw, 1.2rem); }
 
     #canvas {
       border: 2px solid #4ecca3;
       border-radius: 4px;
       box-shadow: 0 0 30px rgba(78, 204, 163, 0.3);
       background: #111122;
+      display: block;
+      touch-action: none;
     }
 
     #message {
-      margin-top: 16px;
-      font-size: 1rem;
+      margin-top: 12px;
+      font-size: clamp(0.7rem, 2.8vw, 0.95rem);
       color: #aaa;
       text-align: center;
-      min-height: 24px;
+      min-height: 20px;
+      padding: 0 8px;
     }
 
     #start-btn {
-      margin-top: 12px;
-      padding: 10px 30px;
+      margin-top: 10px;
+      padding: clamp(8px, 2vw, 10px) clamp(20px, 6vw, 30px);
       background: #4ecca3;
       color: #0f0f1a;
       border: none;
       border-radius: 4px;
-      font-size: 1rem;
+      font-size: clamp(0.85rem, 3vw, 1rem);
       font-weight: bold;
       cursor: pointer;
       letter-spacing: 2px;
       text-transform: uppercase;
       transition: background 0.2s;
+      -webkit-appearance: none;
     }
 
-    #start-btn:hover { background: #38b48b; }
+    #start-btn:active { background: #38b48b; }
+
+    /* スマホ用 十字キー */
+    #dpad {
+      display: none;
+      margin-top: 16px;
+      position: relative;
+      width: 140px;
+      height: 140px;
+    }
+
+    .dpad-btn {
+      position: absolute;
+      width: 44px;
+      height: 44px;
+      background: rgba(78, 204, 163, 0.2);
+      border: 2px solid #4ecca3;
+      border-radius: 6px;
+      color: #4ecca3;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      transition: background 0.1s;
+    }
+
+    .dpad-btn:active { background: rgba(78, 204, 163, 0.5); }
+
+    #btn-up    { top: 0;    left: 48px; }
+    #btn-down  { bottom: 0; left: 48px; }
+    #btn-left  { top: 48px; left: 0;    }
+    #btn-right { top: 48px; right: 0;   }
+
+    @media (max-width: 480px) {
+      #dpad { display: block; }
+    }
   </style>
 </head>
 <body>
   <h1>Snake</h1>
 
   <div id="scoreboard">
-    <div>
-      <span class="score-label">SCORE </span>
-      <span class="score-value" id="score">0</span>
-    </div>
-    <div>
-      <span class="score-label">BEST </span>
-      <span class="score-value" id="best">0</span>
-    </div>
-    <div>
-      <span class="score-label">LEVEL </span>
-      <span class="score-value" id="level">1</span>
-    </div>
+    <div><span class="score-label">SCORE </span><span class="score-value" id="score">0</span></div>
+    <div><span class="score-label">BEST </span><span class="score-value" id="best">0</span></div>
+    <div><span class="score-label">LEVEL </span><span class="score-value" id="level">1</span></div>
   </div>
 
-  <canvas id="canvas" width="400" height="400"></canvas>
+  <canvas id="canvas"></canvas>
 
-  <div id="message">スペースキー または ボタンでスタート</div>
+  <div id="message">タップ または ボタンでスタート</div>
   <button id="start-btn">START</button>
+
+  <!-- スマホ用十字キー -->
+  <div id="dpad">
+    <div class="dpad-btn" id="btn-up">▲</div>
+    <div class="dpad-btn" id="btn-left">◀</div>
+    <div class="dpad-btn" id="btn-right">▶</div>
+    <div class="dpad-btn" id="btn-down">▼</div>
+  </div>
 
   <script>
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
     const CELL = 20;
-    const COLS = canvas.width / CELL;
-    const ROWS = canvas.height / CELL;
+    let COLS, ROWS;
+
+    function resizeCanvas() {
+      const maxSize = Math.min(window.innerWidth - 16, window.innerHeight - 280, 400);
+      const size = Math.floor(maxSize / CELL) * CELL;
+      canvas.width = size;
+      canvas.height = size;
+      COLS = canvas.width / CELL;
+      ROWS = canvas.height / CELL;
+    }
+
+    resizeCanvas();
+    window.addEventListener('resize', () => { resizeCanvas(); if (!running) drawStart(); });
 
     let snake, dir, nextDir, food, score, best, level, speed, gameLoop, running, paused;
 
     function init() {
-      snake = [
-        { x: 10, y: 10 },
-        { x: 9,  y: 10 },
-        { x: 8,  y: 10 },
-      ];
+      const mx = Math.floor(COLS / 2);
+      const my = Math.floor(ROWS / 2);
+      snake = [{ x: mx, y: my }, { x: mx - 1, y: my }, { x: mx - 2, y: my }];
       dir = { x: 1, y: 0 };
       nextDir = { x: 1, y: 0 };
       score = 0;
@@ -119,7 +174,10 @@
       placeFood();
       clearInterval(gameLoop);
       gameLoop = setInterval(tick, speed);
-      document.getElementById('message').textContent = '← → ↑ ↓ で操作 | P で一時停止';
+      const isTouch = window.matchMedia('(max-width: 480px)').matches;
+      document.getElementById('message').textContent = isTouch
+        ? 'スワイプ または ボタンで操作'
+        : '← → ↑ ↓ で操作 | P で一時停止';
     }
 
     function placeFood() {
@@ -132,27 +190,14 @@
 
     function tick() {
       if (!running || paused) return;
-
       dir = nextDir;
       const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
-
-      // Wall collision
-      if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS) {
-        return gameOver();
-      }
-      // Self collision
-      if (snake.some(s => s.x === head.x && s.y === head.y)) {
-        return gameOver();
-      }
-
+      if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS) return gameOver();
+      if (snake.some(s => s.x === head.x && s.y === head.y)) return gameOver();
       snake.unshift(head);
-
       if (head.x === food.x && head.y === food.y) {
         score += 10 * level;
-        if (score > best) {
-          best = score;
-          localStorage.setItem('snakeBest', best);
-        }
+        if (score > best) { best = score; localStorage.setItem('snakeBest', best); }
         const newLevel = Math.floor(score / 100) + 1;
         if (newLevel !== level) {
           level = newLevel;
@@ -165,7 +210,6 @@
       } else {
         snake.pop();
       }
-
       draw();
     }
 
@@ -173,13 +217,11 @@
       running = false;
       clearInterval(gameLoop);
       drawGameOver();
-      document.getElementById('message').textContent = 'スペースキー または ボタンでリスタート';
+      document.getElementById('message').textContent = 'タップ または ボタンでリスタート';
     }
 
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Grid
       ctx.strokeStyle = 'rgba(255,255,255,0.03)';
       ctx.lineWidth = 0.5;
       for (let i = 0; i <= COLS; i++) {
@@ -188,42 +230,25 @@
       for (let j = 0; j <= ROWS; j++) {
         ctx.beginPath(); ctx.moveTo(0, j * CELL); ctx.lineTo(canvas.width, j * CELL); ctx.stroke();
       }
-
-      // Food — glowing circle
-      const fx = food.x * CELL + CELL / 2;
-      const fy = food.y * CELL + CELL / 2;
+      const fx = food.x * CELL + CELL / 2, fy = food.y * CELL + CELL / 2;
       const grd = ctx.createRadialGradient(fx, fy, 2, fx, fy, CELL / 2);
       grd.addColorStop(0, '#ff6b6b');
       grd.addColorStop(1, 'rgba(255,107,107,0)');
-      ctx.beginPath();
-      ctx.arc(fx, fy, CELL / 2, 0, Math.PI * 2);
-      ctx.fillStyle = grd;
-      ctx.fill();
-      ctx.beginPath();
-      ctx.arc(fx, fy, CELL / 2 - 3, 0, Math.PI * 2);
-      ctx.fillStyle = '#ff6b6b';
-      ctx.fill();
-
-      // Snake
+      ctx.beginPath(); ctx.arc(fx, fy, CELL / 2, 0, Math.PI * 2); ctx.fillStyle = grd; ctx.fill();
+      ctx.beginPath(); ctx.arc(fx, fy, CELL / 2 - 3, 0, Math.PI * 2); ctx.fillStyle = '#ff6b6b'; ctx.fill();
       snake.forEach((seg, i) => {
         const alpha = 1 - (i / snake.length) * 0.5;
-        const r = CELL / 2 - 1;
         ctx.beginPath();
         ctx.roundRect(seg.x * CELL + 1, seg.y * CELL + 1, CELL - 2, CELL - 2, 4);
-        ctx.fillStyle = i === 0
-          ? `rgba(78, 204, 163, ${alpha})`
-          : `rgba(50, 170, 130, ${alpha})`;
+        ctx.fillStyle = i === 0 ? `rgba(78,204,163,${alpha})` : `rgba(50,170,130,${alpha})`;
         ctx.fill();
-
-        // Eyes on head
         if (i === 0) {
-          const ex = dir.y !== 0 ? (dir.y === 1 ? [4, 12] : [4, 12]) : (dir.x === 1 ? [12, 12] : [4, 4]);
+          const ex = dir.y !== 0 ? [4, 12] : (dir.x === 1 ? [12, 12] : [4, 4]);
           const ey = dir.x !== 0 ? [4, 12] : (dir.y === 1 ? [12, 12] : [4, 4]);
           [[ex[0], ey[0]], [ex[1], ey[1]]].forEach(([ox, oy]) => {
             ctx.beginPath();
             ctx.arc(seg.x * CELL + ox + (dir.x === 1 ? 2 : 0), seg.y * CELL + oy + (dir.y === 1 ? 2 : 0), 2, 0, Math.PI * 2);
-            ctx.fillStyle = '#0f0f1a';
-            ctx.fill();
+            ctx.fillStyle = '#0f0f1a'; ctx.fill();
           });
         }
       });
@@ -231,15 +256,28 @@
 
     function drawGameOver() {
       draw();
-      ctx.fillStyle = 'rgba(15, 15, 26, 0.75)';
+      ctx.fillStyle = 'rgba(15,15,26,0.75)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = '#ff6b6b';
-      ctx.font = 'bold 36px Segoe UI';
+      ctx.font = `bold ${Math.floor(canvas.width * 0.09)}px Segoe UI`;
       ctx.textAlign = 'center';
       ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 20);
       ctx.fillStyle = '#4ecca3';
-      ctx.font = '20px Segoe UI';
+      ctx.font = `${Math.floor(canvas.width * 0.05)}px Segoe UI`;
       ctx.fillText(`スコア: ${score}`, canvas.width / 2, canvas.height / 2 + 20);
+    }
+
+    function drawStart() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = 'rgba(78,204,163,0.08)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#4ecca3';
+      ctx.font = `bold ${Math.floor(canvas.width * 0.07)}px Segoe UI`;
+      ctx.textAlign = 'center';
+      ctx.fillText('SNAKE', canvas.width / 2, canvas.height / 2 - 10);
+      ctx.fillStyle = '#888';
+      ctx.font = `${Math.floor(canvas.width * 0.04)}px Segoe UI`;
+      ctx.fillText('Tap START to play', canvas.width / 2, canvas.height / 2 + 28);
     }
 
     function updateUI() {
@@ -248,46 +286,62 @@
       document.getElementById('level').textContent = level;
     }
 
-    function drawStart() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = 'rgba(78, 204, 163, 0.08)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = '#4ecca3';
-      ctx.font = 'bold 28px Segoe UI';
-      ctx.textAlign = 'center';
-      ctx.fillText('SNAKE', canvas.width / 2, canvas.height / 2 - 10);
-      ctx.fillStyle = '#888';
-      ctx.font = '16px Segoe UI';
-      ctx.fillText('Press SPACE or START', canvas.width / 2, canvas.height / 2 + 24);
+    function changeDir(d) {
+      if (d.x !== -dir.x || d.y !== -dir.y) nextDir = d;
     }
 
+    // キーボード操作
     document.addEventListener('keydown', e => {
-      const map = {
-        ArrowUp:    { x: 0, y: -1 },
-        ArrowDown:  { x: 0, y:  1 },
-        ArrowLeft:  { x: -1, y: 0 },
-        ArrowRight: { x:  1, y: 0 },
-      };
-      if (map[e.key]) {
-        e.preventDefault();
-        const d = map[e.key];
-        if (d.x !== -dir.x || d.y !== -dir.y) nextDir = d;
-      }
-      if (e.key === ' ') {
-        e.preventDefault();
-        if (!running) init();
-        else { paused = !paused; document.getElementById('message').textContent = paused ? '一時停止中 — スペースで再開' : '← → ↑ ↓ で操作 | P で一時停止'; }
-      }
-      if (e.key === 'p' || e.key === 'P') {
-        if (running) { paused = !paused; document.getElementById('message').textContent = paused ? '一時停止中 — P で再開' : '← → ↑ ↓ で操作 | P で一時停止'; }
-      }
+      const map = { ArrowUp:{x:0,y:-1}, ArrowDown:{x:0,y:1}, ArrowLeft:{x:-1,y:0}, ArrowRight:{x:1,y:0} };
+      if (map[e.key]) { e.preventDefault(); changeDir(map[e.key]); }
+      if (e.key === ' ') { e.preventDefault(); if (!running) init(); else togglePause(); }
+      if (e.key === 'p' || e.key === 'P') { if (running) togglePause(); }
     });
 
+    function togglePause() {
+      paused = !paused;
+      document.getElementById('message').textContent = paused ? '一時停止中 — タップで再開' : 'スワイプ または ボタンで操作';
+    }
+
+    // スワイプ操作
+    let touchStartX = 0, touchStartY = 0;
+    canvas.addEventListener('touchstart', e => {
+      e.preventDefault();
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    }, { passive: false });
+
+    canvas.addEventListener('touchend', e => {
+      e.preventDefault();
+      if (!running) { init(); return; }
+      const dx = e.changedTouches[0].clientX - touchStartX;
+      const dy = e.changedTouches[0].clientY - touchStartY;
+      const absDx = Math.abs(dx), absDy = Math.abs(dy);
+      const threshold = 20;
+      if (Math.max(absDx, absDy) < threshold) { togglePause(); return; }
+      if (absDx > absDy) changeDir(dx > 0 ? {x:1,y:0} : {x:-1,y:0});
+      else                changeDir(dy > 0 ? {x:0,y:1} : {x:0,y:-1});
+    }, { passive: false });
+
+    // 十字キーボタン
+    const dpadMap = {
+      'btn-up':    { x: 0, y: -1 },
+      'btn-down':  { x: 0, y:  1 },
+      'btn-left':  { x: -1, y: 0 },
+      'btn-right': { x:  1, y: 0 },
+    };
+    Object.entries(dpadMap).forEach(([id, d]) => {
+      const btn = document.getElementById(id);
+      btn.addEventListener('touchstart', e => { e.preventDefault(); if (running && !paused) changeDir(d); }, { passive: false });
+      btn.addEventListener('click', () => { if (running && !paused) changeDir(d); });
+    });
+
+    // START ボタン
     document.getElementById('start-btn').addEventListener('click', () => {
-      if (!running) init();
-      else { paused = !paused; document.getElementById('message').textContent = paused ? '一時停止中' : '← → ↑ ↓ で操作 | P で一時停止'; }
+      if (!running) init(); else togglePause();
     });
 
+    // 初期表示
     best = parseInt(localStorage.getItem('snakeBest') || '0');
     updateUI();
     running = false;
